@@ -5,6 +5,8 @@ import com.bourasi.learn.journelusingmongodb.Entity.Journel;
 import com.bourasi.learn.journelusingmongodb.Service.JournelService;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -18,36 +20,53 @@ public class JournelController {
     @Autowired
     private JournelService journelService;
     @PostMapping
-    public Journel createJournelEntry(@RequestBody Journel myjournel){
-        myjournel.setDate(LocalDateTime.now());
-        journelService.createJournelEntries(myjournel);
-        return  myjournel;
-    }
+    public ResponseEntity<Journel> createJournelEntry(@RequestBody Journel myjournel){
+       try {
+           myjournel.setDate(LocalDateTime.now());
+           journelService.createJournelEntries(myjournel);
+           return new ResponseEntity<>(myjournel, HttpStatus.CREATED);
+
+       }catch (Exception e){
+           return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+
+       }
+
+        }
 
     @GetMapping()
-    public List<Journel> getAllJournel(){
-        return journelService.getAllJournel();
+    public ResponseEntity<?> getAllJournel(){
+        List<Journel> list =  journelService.getAllJournel();
+        if(list != null &&  !list.isEmpty()){
+            return new ResponseEntity<>(list,HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+
     }
 
     @GetMapping("/{id}")
-    public Optional<Journel> getById(@PathVariable  ObjectId id){
-        return journelService.getJournelById(id);
+    public ResponseEntity<Journel> getById(@PathVariable  ObjectId id){
+        Optional<Journel> journel = journelService.getJournelById(id);
+        if (journel.isPresent()) {
+            return new ResponseEntity<>(journel.get(), HttpStatus.OK);}
+        return  new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @DeleteMapping("/{id}")
-    public boolean deletJournel(@PathVariable  ObjectId id) {
+    public ResponseEntity<?> deletJournel(@PathVariable  ObjectId id) {
         journelService.deleteJournel(id);
-        return true;
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PutMapping("/update/{id}")
-    public Journel updateJournel(@RequestBody Journel newJournel, @PathVariable ObjectId id){
+    public ResponseEntity<?> updateJournel(@RequestBody Journel newJournel, @PathVariable ObjectId id){
         Journel oldEntry =  journelService.getJournelById(id).orElse(null);
         if (oldEntry != null){
             oldEntry.setTitle(newJournel.getTitle() != null && !newJournel.getTitle().equals("") ? newJournel.getTitle() : oldEntry.getTitle());
             oldEntry.setContent(newJournel.getContent()!=null && !newJournel.getContent().equals("") ? newJournel.getContent() : oldEntry.getContent());
+            journelService.createJournelEntries(oldEntry);
+            return new ResponseEntity<>(oldEntry,HttpStatus.OK);
         }
-        journelService.createJournelEntries(oldEntry);
-        return oldEntry;
+        return  new ResponseEntity<>(HttpStatus.NOT_FOUND);
+
     }
 }
