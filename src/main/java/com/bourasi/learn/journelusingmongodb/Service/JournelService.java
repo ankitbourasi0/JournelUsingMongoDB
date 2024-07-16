@@ -6,6 +6,7 @@ import com.bourasi.learn.journelusingmongodb.Repository.JournelRepository;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,6 +20,13 @@ public class JournelService {
     @Autowired
     private UserService userService;
 
+    @Transactional
+    /*
+     this will tell spring to treat all code in this method treat them as single operation,
+     if any one operation is failed the whole operation will fail,
+     and successfull operation will rollback,
+     also for enable this transaction use annotation at main class @EnableTransactionManagement
+    */
     public void createJournelEntries(Journel journel, String username){
         User user = userService.findByUsername(username);
         try {
@@ -28,6 +36,7 @@ public class JournelService {
             userService.saveUser(user);
         }catch (Exception e){
             System.out.println("Exception:" + e);
+            throw  new RuntimeException("An error occured while saving journel",e);
         }
 
     }
